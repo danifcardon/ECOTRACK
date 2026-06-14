@@ -67,8 +67,10 @@ def rows_to_dataframe(rows: list) -> pd.DataFrame:
     return pd.DataFrame([dict(row) for row in rows])
 
 
-ROLES = ["Administrador", "Operador", "Logística", "Mantenimiento"]
-TIPOS_VEHICULO = ["Furgón", "Moto", "Bicicleta eléctrica", "Van"]
-ESTADOS_VEHICULO = ["Disponible", "En ruta", "En mantenimiento", "Fuera de servicio"]
-ESTADOS_CONDUCTOR = ["Disponible", "En ruta", "Inactivo"]
-ESTADOS_VIAJE = ["Planificado", "En curso", "Completado", "Cancelado"]
+from utils.constants import (
+    ESTADOS_CONDUCTOR,
+    ESTADOS_VEHICULO,
+    ESTADOS_VIAJE,
+    ROLES,
+    TIPOS_VEHICULO,
+)

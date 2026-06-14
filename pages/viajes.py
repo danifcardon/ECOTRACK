@@ -4,6 +4,10 @@ import streamlit as st
 
 import database as db
 from utils.helpers import ESTADOS_VIAJE, format_date, rows_to_dataframe
+from utils.errors import ValidationError
+from utils.validators import show_errors, validate_rango_fechas, validate_viaje_form
+
+ESTADOS_NUEVO_VIAJE = ["Planificado", "En curso"]
 
 
 def get_vehiculo_options() -> dict[str, int]:
@@ -28,61 +32,81 @@ def render_form_agregar() -> None:
         st.subheader("Registrar nuevo viaje")
         col1, col2 = st.columns(2)
         with col1:
-            fecha = st.date_input("Fecha *", value=date.today())
-            origen = st.text_input("Origen *")
-            destino = st.text_input("Destino *")
+            fecha = st.date_input("Fecha *", min_value=date.today(), value=date.today())
+            origen = st.text_input("Origen *", placeholder="Buenos Aires - Palermo")
+            destino = st.text_input("Destino *", placeholder="Buenos Aires - Belgrano")
         with col2:
             conductor_label = st.selectbox("Conductor *", list(conductor_opts.keys()))
             vehiculo_label = st.selectbox("Vehículo *", list(vehiculo_opts.keys()))
-            estado = st.selectbox("Estado", ESTADOS_VIAJE, index=0)
-        notas = st.text_area("Notas")
+            estado = st.selectbox("Estado", ESTADOS_NUEVO_VIAJE, index=0)
+        notas = st.text_area("Notas", max_chars=500)
 
         submitted = st.form_submit_button("Registrar viaje", type="primary")
         if submitted:
-            if not origen.strip() or not destino.strip():
-                st.error("Origen y destino son obligatorios.")
+            errores = validate_viaje_form(
+                fecha, origen, destino, estado, notas=notas, es_nuevo=True,
+            )
+            if errores:
+                show_errors(errores)
                 return
-            db.insert_viaje({
-                "fecha": fecha.isoformat(),
-                "vehiculo_id": vehiculo_opts[vehiculo_label],
-                "conductor_id": conductor_opts[conductor_label],
-                "origen": origen.strip(),
-                "destino": destino.strip(),
-                "estado": estado,
-                "notas": notas.strip() or None,
-            })
-            st.success("Viaje registrado correctamente.")
-            st.session_state["show_add_viaje"] = False
-            st.rerun()
+            try:
+                db.insert_viaje({
+                    "fecha": fecha.isoformat(),
+                    "vehiculo_id": vehiculo_opts[vehiculo_label],
+                    "conductor_id": conductor_opts[conductor_label],
+                    "origen": origen,
+                    "destino": destino,
+                    "estado": estado,
+                    "notas": notas.strip() or None,
+                })
+                st.success("Viaje registrado correctamente.")
+                st.session_state["show_add_viaje"] = False
+                st.rerun()
+            except ValidationError as e:
+                st.error(e.message)
+            except Exception:
+                st.error("No se pudo registrar el viaje.")
 
 
 def render_completar(viaje: dict) -> None:
-    if viaje["estado"] == "Completado":
+    if viaje["estado"] in ("Completado", "Cancelado"):
         return
 
     with st.form(f"form_completar_viaje_{viaje['id']}"):
         st.markdown("**Completar viaje**")
-        km = st.number_input("Km recorridos", min_value=0.0, value=float(viaje["km_recorridos"] or 0), step=0.5)
-        consumo = st.number_input("Consumo (kWh)", min_value=0.0, value=float(viaje["consumo_kwh"] or 0), step=0.1)
+        km = st.number_input("Km recorridos *", min_value=0.1, max_value=2000.0, value=1.0, step=0.5)
+        consumo = st.number_input("Consumo (kWh) *", min_value=0.1, max_value=500.0, value=1.0, step=0.1)
         submitted = st.form_submit_button("Marcar como completado", type="primary")
 
         if submitted:
-            if km <= 0:
-                st.error("Ingresá los km recorridos.")
+            fecha_viaje = date.fromisoformat(viaje["fecha"]) if viaje.get("fecha") else date.today()
+            errores = validate_viaje_form(
+                fecha_viaje,
+                viaje["origen"],
+                viaje["destino"],
+                "Completado",
+                km_recorridos=km,
+                consumo_kwh=consumo,
+            )
+            if errores:
+                show_errors(errores)
                 return
-            db.update_viaje(viaje["id"], {
-                "fecha": viaje["fecha"],
-                "vehiculo_id": viaje["vehiculo_id"],
-                "conductor_id": viaje["conductor_id"],
-                "origen": viaje["origen"],
-                "destino": viaje["destino"],
-                "km_recorridos": km,
-                "estado": "Completado",
-                "consumo_kwh": consumo,
-                "notas": viaje.get("notas"),
-            })
-            st.success("Viaje completado. Km del vehículo actualizados.")
-            st.rerun()
+            try:
+                db.update_viaje(viaje["id"], {
+                    "fecha": viaje["fecha"],
+                    "vehiculo_id": viaje["vehiculo_id"],
+                    "conductor_id": viaje["conductor_id"],
+                    "origen": viaje["origen"],
+                    "destino": viaje["destino"],
+                    "km_recorridos": km,
+                    "estado": "Completado",
+                    "consumo_kwh": consumo,
+                    "notas": viaje.get("notas"),
+                })
+                st.success("Viaje completado. Km del vehículo actualizados.")
+                st.rerun()
+            except ValidationError as e:
+                st.error(e.message)
 
 
 def render_editar(viaje: dict) -> None:
@@ -93,10 +117,12 @@ def render_editar(viaje: dict) -> None:
         except ValueError:
             pass
 
+    min_fecha = date.today() if viaje["estado"] in ("Planificado", "En curso") else date.today().replace(year=date.today().year - 1)
+
     with st.form(f"form_editar_viaje_{viaje['id']}"):
         col1, col2 = st.columns(2)
         with col1:
-            fecha = st.date_input("Fecha", value=fecha_default)
+            fecha = st.date_input("Fecha", value=fecha_default, min_value=min_fecha, max_value=date.today())
             origen = st.text_input("Origen", value=viaje["origen"])
             destino = st.text_input("Destino", value=viaje["destino"])
         with col2:
@@ -105,29 +131,48 @@ def render_editar(viaje: dict) -> None:
                 ESTADOS_VIAJE,
                 index=ESTADOS_VIAJE.index(viaje["estado"]) if viaje["estado"] in ESTADOS_VIAJE else 0,
             )
-            km = st.number_input("Km recorridos", value=float(viaje["km_recorridos"] or 0), min_value=0.0)
-            consumo = st.number_input("Consumo kWh", value=float(viaje["consumo_kwh"] or 0), min_value=0.0)
+            km = st.number_input(
+                "Km recorridos",
+                value=float(viaje["km_recorridos"] or 0),
+                min_value=0.0,
+                max_value=2000.0,
+            )
+            consumo = st.number_input(
+                "Consumo kWh",
+                value=float(viaje["consumo_kwh"] or 0),
+                min_value=0.0,
+                max_value=500.0,
+            )
 
-        notas = st.text_area("Notas", value=viaje.get("notas") or "")
+        notas = st.text_area("Notas", value=viaje.get("notas") or "", max_chars=500)
         submitted = st.form_submit_button("Actualizar")
 
         if submitted:
-            if not origen.strip() or not destino.strip():
-                st.error("Origen y destino son obligatorios.")
+            km_val = km if km > 0 else None
+            consumo_val = consumo if consumo > 0 else None
+            errores = validate_viaje_form(
+                fecha, origen, destino, estado,
+                km_recorridos=km_val, consumo_kwh=consumo_val, notas=notas,
+            )
+            if errores:
+                show_errors(errores)
                 return
-            db.update_viaje(viaje["id"], {
-                "fecha": fecha.isoformat(),
-                "vehiculo_id": viaje["vehiculo_id"],
-                "conductor_id": viaje["conductor_id"],
-                "origen": origen.strip(),
-                "destino": destino.strip(),
-                "km_recorridos": km if km > 0 else None,
-                "estado": estado,
-                "consumo_kwh": consumo if consumo > 0 else None,
-                "notas": notas.strip() or None,
-            })
-            st.success("Viaje actualizado.")
-            st.rerun()
+            try:
+                db.update_viaje(viaje["id"], {
+                    "fecha": fecha.isoformat(),
+                    "vehiculo_id": viaje["vehiculo_id"],
+                    "conductor_id": viaje["conductor_id"],
+                    "origen": origen,
+                    "destino": destino,
+                    "km_recorridos": km_val,
+                    "estado": estado,
+                    "consumo_kwh": consumo_val,
+                    "notas": notas.strip() or None,
+                })
+                st.success("Viaje actualizado.")
+                st.rerun()
+            except ValidationError as e:
+                st.error(e.message)
 
 
 def render() -> None:
@@ -145,21 +190,22 @@ def render() -> None:
         col_desde, col_hasta = st.columns(2)
         hoy = date.today()
         with col_desde:
-            fecha_desde = st.date_input("Desde", value=hoy.replace(day=1))
+            fecha_desde = st.date_input("Desde", value=hoy.replace(day=1), max_value=hoy)
         with col_hasta:
-            fecha_hasta = st.date_input("Hasta", value=hoy)
+            fecha_hasta = st.date_input("Hasta", value=hoy, max_value=hoy)
     with col3:
         st.markdown("<br>", unsafe_allow_html=True)
         if st.button("➕ Registrar viaje", use_container_width=True):
             st.session_state["show_add_viaje"] = not st.session_state.get("show_add_viaje", False)
 
-    if st.session_state.get("show_add_viaje"):
-        render_form_agregar()
+    err_rango = validate_rango_fechas(fecha_desde, fecha_hasta)
+    if err_rango:
+        st.warning(err_rango)
 
     viajes = rows_to_dataframe(db.get_viajes(
         estado=filtro_estado if filtro_estado != "Todos" else None,
-        fecha_desde=fecha_desde.isoformat() if fecha_desde else None,
-        fecha_hasta=fecha_hasta.isoformat() if fecha_hasta else None,
+        fecha_desde=fecha_desde.isoformat() if fecha_desde and not err_rango else None,
+        fecha_hasta=fecha_hasta.isoformat() if fecha_hasta and not err_rango else None,
     ))
 
     if viajes.empty:
@@ -191,6 +237,9 @@ def render() -> None:
             render_editar(v)
 
             if st.button("Eliminar", key=f"del_viaje_{v['id']}"):
-                db.delete_viaje(v["id"])
-                st.success("Viaje eliminado.")
-                st.rerun()
+                try:
+                    db.delete_viaje(v["id"])
+                    st.success("Viaje eliminado.")
+                    st.rerun()
+                except ValidationError as e:
+                    st.error(e.message)

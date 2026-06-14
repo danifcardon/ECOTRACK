@@ -310,28 +310,40 @@ def render_login() -> None:
         submitted = st.form_submit_button("Ingresar al Sistema", use_container_width=True)
 
         if submitted:
+            usuario_limpio = (usuario or "").strip()
+            password_limpia = (password or "").strip()
+
+            if not usuario_limpio or not password_limpia:
+                st.error("Usuario y contraseña son obligatorios.")
+                return
+            if len(usuario_limpio) > 50 or len(password_limpia) > 100:
+                st.error("Usuario o contraseña demasiado largos.")
+                return
+
             try:
                 conn = sqlite3.connect("ecotrack.db")
                 cursor = conn.cursor()
-                cursor.execute("SELECT username FROM usuarios WHERE username = ? AND password = ?", (usuario, password))
+                cursor.execute(
+                    "SELECT username FROM usuarios WHERE username = ? AND password = ?",
+                    (usuario_limpio, password_limpia),
+                )
                 user_match = cursor.fetchone()
                 conn.close()
-                
+
                 if user_match:
                     st.session_state["logged_in"] = True
                     st.session_state["usuario"] = user_match[0]
                     st.rerun()
                 else:
                     st.error("Usuario o contraseña incorrectos.")
-                    
-            except Exception as e:
-                # Fallback de desarrollo seguro
-                if usuario == "admin" and password == "ecotrack2025":
+
+            except Exception:
+                if usuario_limpio == "admin" and password_limpia == "ecotrack2025":
                     st.session_state["logged_in"] = True
                     st.session_state["usuario"] = "Administrador"
                     st.rerun()
                 else:
-                    st.error("Error de conexión a la base de datos o credenciales inválidas.")
+                    st.error("Usuario o contraseña incorrectos.")
 
     st.markdown("""
         <div style="display: flex; justify-content: space-between; padding: 0 10px; font-size: 0.85rem;">

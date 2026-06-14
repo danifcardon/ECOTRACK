@@ -4,6 +4,10 @@ import streamlit as st
 
 import database as db
 from utils.helpers import ESTADOS_CONDUCTOR, alert_vencimientos, days_until, format_date, rows_to_dataframe
+from utils.errors import ValidationError
+from utils.validators import show_errors, validate_conductor_form
+
+MIN_VENCIMIENTO = date.today() + timedelta(days=1)
 
 
 def render_form_agregar() -> None:
@@ -12,39 +16,46 @@ def render_form_agregar() -> None:
         col1, col2 = st.columns(2)
         with col1:
             nombre = st.text_input("Nombre completo *")
-            dni = st.text_input("DNI *")
-            telefono = st.text_input("Teléfono")
+            dni = st.text_input("DNI *", placeholder="30123456")
+            telefono = st.text_input("Teléfono", placeholder="11-4444-5555")
         with col2:
-            licencia = st.text_input("N° de licencia")
-            vencimiento = st.date_input("Vencimiento licencia", value=date.today() + timedelta(days=365))
-            estado = st.selectbox("Estado", ESTADOS_CONDUCTOR)
+            licencia = st.text_input("N° de licencia *")
+            vencimiento = st.date_input(
+                "Vencimiento licencia *",
+                min_value=MIN_VENCIMIENTO,
+                value=date.today() + timedelta(days=365),
+            )
+            estado = st.selectbox("Estado", ESTADOS_CONDUCTOR, index=0)
 
         submitted = st.form_submit_button("Guardar", type="primary")
         if submitted:
-            if not nombre.strip() or not dni.strip():
-                st.error("Nombre y DNI son obligatorios.")
+            errores = validate_conductor_form(nombre, dni, telefono, licencia, vencimiento, estado)
+            if errores:
+                show_errors(errores)
                 return
             try:
                 db.insert_conductor({
-                    "nombre": nombre.strip(),
-                    "dni": dni.strip(),
+                    "nombre": nombre,
+                    "dni": dni,
                     "telefono": telefono.strip() or None,
-                    "licencia": licencia.strip() or None,
+                    "licencia": licencia.strip(),
                     "vencimiento_licencia": vencimiento.isoformat(),
                     "estado": estado,
                 })
-                st.success(f"Conductor '{nombre}' agregado.")
+                st.success(f"Conductor '{nombre.strip()}' agregado.")
                 st.session_state["show_add_conductor"] = False
                 st.rerun()
+            except ValidationError as e:
+                st.error(e.message)
             except Exception:
-                st.error("No se pudo agregar. Verificá que el DNI no esté duplicado.")
+                st.error("No se pudo agregar el conductor.")
 
 
 def render_editar(conductor: dict) -> None:
-    venc_default = date.today()
+    venc_default = MIN_VENCIMIENTO
     if conductor.get("vencimiento_licencia"):
         try:
-            venc_default = date.fromisoformat(conductor["vencimiento_licencia"])
+            venc_default = max(date.fromisoformat(conductor["vencimiento_licencia"]), MIN_VENCIMIENTO)
         except ValueError:
             pass
 
@@ -56,7 +67,7 @@ def render_editar(conductor: dict) -> None:
             telefono = st.text_input("Teléfono", value=conductor["telefono"] or "")
         with col2:
             licencia = st.text_input("Licencia", value=conductor["licencia"] or "")
-            vencimiento = st.date_input("Vencimiento licencia", value=venc_default)
+            vencimiento = st.date_input("Vencimiento licencia", value=venc_default, min_value=MIN_VENCIMIENTO)
             estado = st.selectbox(
                 "Estado",
                 ESTADOS_CONDUCTOR,
@@ -66,21 +77,27 @@ def render_editar(conductor: dict) -> None:
 
         submitted = st.form_submit_button("Actualizar")
         if submitted:
-            if not nombre.strip() or not dni.strip():
-                st.error("Nombre y DNI son obligatorios.")
+            errores = validate_conductor_form(nombre, dni, telefono, licencia, vencimiento, estado)
+            if errores:
+                show_errors(errores)
+                return
+            if not activo and estado in ("Disponible", "En ruta"):
+                st.error("Un conductor inactivo no puede estar Disponible o En ruta.")
                 return
             try:
                 db.update_conductor(conductor["id"], {
-                    "nombre": nombre.strip(),
-                    "dni": dni.strip(),
+                    "nombre": nombre,
+                    "dni": dni,
                     "telefono": telefono.strip() or None,
-                    "licencia": licencia.strip() or None,
+                    "licencia": licencia.strip(),
                     "vencimiento_licencia": vencimiento.isoformat(),
                     "estado": estado,
                     "activo": 1 if activo else 0,
                 })
                 st.success("Conductor actualizado.")
                 st.rerun()
+            except ValidationError as e:
+                st.error(e.message)
             except Exception:
                 st.error("Error al actualizar el conductor.")
 
@@ -144,6 +161,9 @@ def render() -> None:
             render_editar(c)
 
             if st.button("Eliminar", key=f"del_cond_{c['id']}"):
-                db.delete_conductor(c["id"])
-                st.success("Conductor eliminado.")
-                st.rerun()
+                try:
+                    db.delete_conductor(c["id"])
+                    st.success("Conductor eliminado.")
+                    st.rerun()
+                except ValidationError as e:
+                    st.error(e.message)

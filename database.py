@@ -1,6 +1,9 @@
 import sqlite3
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from pathlib import Path
+
+from utils.errors import ValidationError
+from utils.validators import normalize_dni, normalize_patente
 
 DB_PATH = Path(__file__).parent / "ecotrack.db"
 
@@ -170,6 +173,80 @@ def execute(query: str, params: tuple = ()) -> int:
     return last_id
 
 
+def email_exists(email: str, exclude_id: int | None = None) -> bool:
+    if exclude_id:
+        row = fetch_one("SELECT id FROM usuarios WHERE email = ? AND id != ?", (email, exclude_id))
+    else:
+        row = fetch_one("SELECT id FROM usuarios WHERE email = ?", (email,))
+    return row is not None
+
+
+def patente_exists(patente: str, exclude_id: int | None = None) -> bool:
+    patente = normalize_patente(patente)
+    if exclude_id:
+        row = fetch_one("SELECT id FROM vehiculos WHERE patente = ? AND id != ?", (patente, exclude_id))
+    else:
+        row = fetch_one("SELECT id FROM vehiculos WHERE patente = ?", (patente,))
+    return row is not None
+
+
+def dni_exists(dni: str, exclude_id: int | None = None) -> bool:
+    dni = normalize_dni(dni)
+    if exclude_id:
+        row = fetch_one("SELECT id FROM conductores WHERE dni = ? AND id != ?", (dni, exclude_id))
+    else:
+        row = fetch_one("SELECT id FROM conductores WHERE dni = ?", (dni,))
+    return row is not None
+
+
+def count_viajes_activos_vehiculo(vehiculo_id: int, exclude_viaje_id: int | None = None) -> int:
+    query = "SELECT COUNT(*) AS c FROM viajes WHERE vehiculo_id = ? AND estado IN ('Planificado', 'En curso')"
+    params: list = [vehiculo_id]
+    if exclude_viaje_id:
+        query += " AND id != ?"
+        params.append(exclude_viaje_id)
+    return fetch_one(query, tuple(params))["c"]
+
+
+def count_viajes_activos_conductor(conductor_id: int, exclude_viaje_id: int | None = None) -> int:
+    query = "SELECT COUNT(*) AS c FROM viajes WHERE conductor_id = ? AND estado IN ('Planificado', 'En curso')"
+    params: list = [conductor_id]
+    if exclude_viaje_id:
+        query += " AND id != ?"
+        params.append(exclude_viaje_id)
+    return fetch_one(query, tuple(params))["c"]
+
+
+def count_viajes_vehiculo(vehiculo_id: int) -> int:
+    return fetch_one("SELECT COUNT(*) AS c FROM viajes WHERE vehiculo_id = ?", (vehiculo_id,))["c"]
+
+
+def count_viajes_conductor(conductor_id: int) -> int:
+    return fetch_one("SELECT COUNT(*) AS c FROM viajes WHERE conductor_id = ?", (conductor_id,))["c"]
+
+
+def _assert_vehiculo_disponible(vehiculo_id: int) -> None:
+    vehiculo = get_vehiculo(vehiculo_id)
+    if not vehiculo:
+        raise ValidationError("El vehículo seleccionado no existe.")
+    if vehiculo["estado"] != "Disponible":
+        raise ValidationError(f"El vehículo {vehiculo['patente']} no está disponible (estado: {vehiculo['estado']}).")
+
+
+def _assert_conductor_disponible(conductor_id: int) -> None:
+    conductor = get_conductor(conductor_id)
+    if not conductor:
+        raise ValidationError("El conductor seleccionado no existe.")
+    if conductor["activo"] != 1:
+        raise ValidationError(f"El conductor {conductor['nombre']} está inactivo.")
+    if conductor["estado"] != "Disponible":
+        raise ValidationError(f"El conductor {conductor['nombre']} no está disponible (estado: {conductor['estado']}).")
+    if conductor["vencimiento_licencia"]:
+        venc = date.fromisoformat(conductor["vencimiento_licencia"])
+        if venc <= date.today():
+            raise ValidationError(f"La licencia del conductor {conductor['nombre']} está vencida.")
+
+
 def get_usuarios() -> list[sqlite3.Row]:
     return fetch_all("SELECT * FROM usuarios ORDER BY nombre")
 
@@ -179,17 +256,25 @@ def get_usuario(usuario_id: int) -> sqlite3.Row | None:
 
 
 def insert_usuario(nombre: str, email: str, rol: str) -> int:
+    email = email.strip().lower()
+    if email_exists(email):
+        raise ValidationError("Ya existe un usuario con ese email.")
     fecha = datetime.now().strftime("%Y-%m-%d")
     return execute(
         "INSERT INTO usuarios (nombre, email, rol, activo, fecha_creacion) VALUES (?, ?, ?, 1, ?)",
-        (nombre, email, rol, fecha),
+        (nombre.strip(), email, rol, fecha),
     )
 
 
 def update_usuario(usuario_id: int, nombre: str, email: str, rol: str) -> None:
+    if not get_usuario(usuario_id):
+        raise ValidationError("El usuario no existe.")
+    email = email.strip().lower()
+    if email_exists(email, exclude_id=usuario_id):
+        raise ValidationError("Ya existe otro usuario con ese email.")
     execute(
         "UPDATE usuarios SET nombre = ?, email = ?, rol = ? WHERE id = ?",
-        (nombre, email, rol, usuario_id),
+        (nombre.strip(), email, rol, usuario_id),
     )
 
 
@@ -223,33 +308,49 @@ def get_vehiculos_disponibles() -> list[sqlite3.Row]:
 
 
 def insert_vehiculo(data: dict) -> int:
+    patente = normalize_patente(data["patente"])
+    if patente_exists(patente):
+        raise ValidationError(f"Ya existe un vehículo con la patente {patente}.")
     return execute(
         """INSERT INTO vehiculos
            (patente, modelo, marca, anio, tipo, estado, nivel_bateria, km_totales,
             vencimiento_vtv, vencimiento_seguro, notas)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         (
-            data["patente"], data["modelo"], data["marca"], data["anio"], data["tipo"],
+            patente, data["modelo"].strip(), data["marca"].strip(), data["anio"], data["tipo"],
             data["estado"], data["nivel_bateria"], data["km_totales"],
-            data["vencimiento_vtv"], data["vencimiento_seguro"], data["notas"],
+            data["vencimiento_vtv"], data["vencimiento_seguro"], data.get("notas"),
         ),
     )
 
 
 def update_vehiculo(vehiculo_id: int, data: dict) -> None:
+    if not get_vehiculo(vehiculo_id):
+        raise ValidationError("El vehículo no existe.")
+    patente = normalize_patente(data["patente"])
+    if patente_exists(patente, exclude_id=vehiculo_id):
+        raise ValidationError(f"Ya existe otro vehículo con la patente {patente}.")
+    if data["estado"] == "Disponible" and count_viajes_activos_vehiculo(vehiculo_id) > 0:
+        raise ValidationError("No se puede marcar como Disponible: el vehículo tiene viajes activos.")
     execute(
         """UPDATE vehiculos SET patente=?, modelo=?, marca=?, anio=?, tipo=?, estado=?,
            nivel_bateria=?, km_totales=?, vencimiento_vtv=?, vencimiento_seguro=?, notas=?
            WHERE id=?""",
         (
-            data["patente"], data["modelo"], data["marca"], data["anio"], data["tipo"],
+            patente, data["modelo"].strip(), data["marca"].strip(), data["anio"], data["tipo"],
             data["estado"], data["nivel_bateria"], data["km_totales"],
-            data["vencimiento_vtv"], data["vencimiento_seguro"], data["notas"], vehiculo_id,
+            data["vencimiento_vtv"], data["vencimiento_seguro"], data.get("notas"), vehiculo_id,
         ),
     )
 
 
 def delete_vehiculo(vehiculo_id: int) -> None:
+    if not get_vehiculo(vehiculo_id):
+        raise ValidationError("El vehículo no existe.")
+    if count_viajes_activos_vehiculo(vehiculo_id) > 0:
+        raise ValidationError("No se puede eliminar: el vehículo tiene viajes planificados o en curso.")
+    if count_viajes_vehiculo(vehiculo_id) > 0:
+        raise ValidationError("No se puede eliminar: el vehículo tiene viajes asociados en el historial.")
     execute("DELETE FROM vehiculos WHERE id = ?", (vehiculo_id,))
 
 
@@ -285,29 +386,47 @@ def get_conductores_disponibles() -> list[sqlite3.Row]:
 
 
 def insert_conductor(data: dict) -> int:
+    dni = normalize_dni(data["dni"])
+    if dni_exists(dni):
+        raise ValidationError(f"Ya existe un conductor con el DNI {dni}.")
     return execute(
         """INSERT INTO conductores
            (nombre, dni, telefono, licencia, vencimiento_licencia, estado, activo)
            VALUES (?, ?, ?, ?, ?, ?, 1)""",
         (
-            data["nombre"], data["dni"], data["telefono"], data["licencia"],
+            data["nombre"].strip(), dni, data.get("telefono"), data.get("licencia"),
             data["vencimiento_licencia"], data["estado"],
         ),
     )
 
 
 def update_conductor(conductor_id: int, data: dict) -> None:
+    if not get_conductor(conductor_id):
+        raise ValidationError("El conductor no existe.")
+    dni = normalize_dni(data["dni"])
+    if dni_exists(dni, exclude_id=conductor_id):
+        raise ValidationError(f"Ya existe otro conductor con el DNI {dni}.")
+    if data["estado"] == "Disponible" and count_viajes_activos_conductor(conductor_id) > 0:
+        raise ValidationError("No se puede marcar como Disponible: el conductor tiene viajes activos.")
+    if data["estado"] in ("Disponible", "En ruta") and data["activo"] != 1:
+        raise ValidationError("Un conductor inactivo no puede estar Disponible o En ruta.")
     execute(
         """UPDATE conductores SET nombre=?, dni=?, telefono=?, licencia=?,
            vencimiento_licencia=?, estado=?, activo=? WHERE id=?""",
         (
-            data["nombre"], data["dni"], data["telefono"], data["licencia"],
+            data["nombre"].strip(), dni, data.get("telefono"), data.get("licencia"),
             data["vencimiento_licencia"], data["estado"], data["activo"], conductor_id,
         ),
     )
 
 
 def delete_conductor(conductor_id: int) -> None:
+    if not get_conductor(conductor_id):
+        raise ValidationError("El conductor no existe.")
+    if count_viajes_activos_conductor(conductor_id) > 0:
+        raise ValidationError("No se puede eliminar: el conductor tiene viajes planificados o en curso.")
+    if count_viajes_conductor(conductor_id) > 0:
+        raise ValidationError("No se puede eliminar: el conductor tiene viajes asociados en el historial.")
     execute("DELETE FROM conductores WHERE id = ?", (conductor_id,))
 
 
@@ -345,17 +464,33 @@ def get_viaje(viaje_id: int) -> sqlite3.Row | None:
 
 
 def insert_viaje(data: dict) -> int:
+    estado = data["estado"]
+    if estado not in ("Planificado", "En curso", "Completado", "Cancelado"):
+        raise ValidationError("Estado de viaje inválido.")
+
+    vehiculo = get_vehiculo(data["vehiculo_id"])
+    conductor = get_conductor(data["conductor_id"])
+    if not vehiculo or not conductor:
+        raise ValidationError("Vehículo o conductor no encontrado.")
+
+    if estado in ("Planificado", "En curso"):
+        _assert_vehiculo_disponible(data["vehiculo_id"])
+        _assert_conductor_disponible(data["conductor_id"])
+    elif estado == "Completado":
+        if not data.get("km_recorridos") or data["km_recorridos"] <= 0:
+            raise ValidationError("Un viaje completado requiere km recorridos mayores a 0.")
+
     viaje_id = execute(
         """INSERT INTO viajes
            (fecha, vehiculo_id, conductor_id, origen, destino, km_recorridos, estado, consumo_kwh, notas)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         (
             data["fecha"], data["vehiculo_id"], data["conductor_id"],
-            data["origen"], data["destino"], data.get("km_recorridos"),
-            data["estado"], data.get("consumo_kwh"), data.get("notas"),
+            data["origen"].strip(), data["destino"].strip(), data.get("km_recorridos"),
+            estado, data.get("consumo_kwh"), data.get("notas"),
         ),
     )
-    if data["estado"] in ("Planificado", "En curso"):
+    if estado in ("Planificado", "En curso"):
         execute("UPDATE vehiculos SET estado = 'En ruta' WHERE id = ?", (data["vehiculo_id"],))
         execute("UPDATE conductores SET estado = 'En ruta' WHERE id = ?", (data["conductor_id"],))
     return viaje_id
@@ -363,30 +498,54 @@ def insert_viaje(data: dict) -> int:
 
 def update_viaje(viaje_id: int, data: dict) -> None:
     viaje_anterior = fetch_one("SELECT * FROM viajes WHERE id = ?", (viaje_id,))
+    if not viaje_anterior:
+        raise ValidationError("El viaje no existe.")
+
+    estado = data["estado"]
+    estado_prev = viaje_anterior["estado"]
+
+    if estado == "Completado":
+        if not data.get("km_recorridos") or data["km_recorridos"] <= 0:
+            raise ValidationError("Para completar el viaje, los km recorridos deben ser mayores a 0.")
+        if not data.get("consumo_kwh") or data["consumo_kwh"] <= 0:
+            raise ValidationError("Para completar el viaje, el consumo en kWh es obligatorio.")
+
+    if estado in ("Planificado", "En curso") and estado_prev in ("Completado", "Cancelado"):
+        _assert_vehiculo_disponible(data["vehiculo_id"])
+        _assert_conductor_disponible(data["conductor_id"])
+
     execute(
         """UPDATE viajes SET fecha=?, vehiculo_id=?, conductor_id=?, origen=?, destino=?,
            km_recorridos=?, estado=?, consumo_kwh=?, notas=? WHERE id=?""",
         (
             data["fecha"], data["vehiculo_id"], data["conductor_id"],
-            data["origen"], data["destino"], data.get("km_recorridos"),
-            data["estado"], data.get("consumo_kwh"), data.get("notas"), viaje_id,
+            data["origen"].strip(), data["destino"].strip(), data.get("km_recorridos"),
+            estado, data.get("consumo_kwh"), data.get("notas"), viaje_id,
         ),
     )
-    if data["estado"] == "Completado" and viaje_anterior and viaje_anterior["estado"] != "Completado":
+
+    if estado == "Completado" and estado_prev != "Completado":
         km = data.get("km_recorridos") or 0
         update_vehiculo_km_estado(data["vehiculo_id"], km, "Disponible")
         execute("UPDATE conductores SET estado = 'Disponible' WHERE id = ?", (data["conductor_id"],))
-    elif data["estado"] == "Cancelado":
+    elif estado == "Cancelado" and estado_prev in ("Planificado", "En curso"):
         execute("UPDATE vehiculos SET estado = 'Disponible' WHERE id = ?", (data["vehiculo_id"],))
         execute("UPDATE conductores SET estado = 'Disponible' WHERE id = ?", (data["conductor_id"],))
+    elif estado in ("Planificado", "En curso") and estado_prev in ("Completado", "Cancelado"):
+        execute("UPDATE vehiculos SET estado = 'En ruta' WHERE id = ?", (data["vehiculo_id"],))
+        execute("UPDATE conductores SET estado = 'En ruta' WHERE id = ?", (data["conductor_id"],))
 
 
 def delete_viaje(viaje_id: int) -> None:
     viaje = fetch_one("SELECT * FROM viajes WHERE id = ?", (viaje_id,))
+    if not viaje:
+        raise ValidationError("El viaje no existe.")
     execute("DELETE FROM viajes WHERE id = ?", (viaje_id,))
-    if viaje and viaje["estado"] in ("Planificado", "En curso"):
-        execute("UPDATE vehiculos SET estado = 'Disponible' WHERE id = ?", (viaje["vehiculo_id"],))
-        execute("UPDATE conductores SET estado = 'Disponible' WHERE id = ?", (viaje["conductor_id"],))
+    if viaje["estado"] in ("Planificado", "En curso"):
+        if count_viajes_activos_vehiculo(viaje["vehiculo_id"]) == 0:
+            execute("UPDATE vehiculos SET estado = 'Disponible' WHERE id = ?", (viaje["vehiculo_id"],))
+        if count_viajes_activos_conductor(viaje["conductor_id"]) == 0:
+            execute("UPDATE conductores SET estado = 'Disponible' WHERE id = ?", (viaje["conductor_id"],))
 
 
 def get_dashboard_kpis() -> dict:

@@ -1,0 +1,5 @@
+ROLES = ["Administrador", "Operador", "Logística", "Mantenimiento"]
+TIPOS_VEHICULO = ["Furgón", "Moto", "Bicicleta eléctrica", "Van"]
+ESTADOS_VEHICULO = ["Disponible", "En ruta", "En mantenimiento", "Fuera de servicio"]
+ESTADOS_CONDUCTOR = ["Disponible", "En ruta", "Inactivo"]
+ESTADOS_VIAJE = ["Planificado", "En curso", "Completado", "Cancelado"]

@@ -2,6 +2,8 @@ import streamlit as st
 
 import database as db
 from utils.helpers import ROLES, format_date, rows_to_dataframe
+from utils.errors import ValidationError
+from utils.validators import show_errors, validate_usuario_form
 
 
 def render_form_agregar() -> None:
@@ -13,16 +15,19 @@ def render_form_agregar() -> None:
         submitted = st.form_submit_button("Guardar", type="primary")
 
         if submitted:
-            if not nombre.strip() or not email.strip():
-                st.error("Nombre y email son obligatorios.")
+            errores = validate_usuario_form(nombre, email, rol)
+            if errores:
+                show_errors(errores)
                 return
             try:
-                db.insert_usuario(nombre.strip(), email.strip().lower(), rol)
-                st.success(f"Usuario '{nombre}' creado correctamente.")
+                db.insert_usuario(nombre, email, rol)
+                st.success(f"Usuario '{nombre.strip()}' creado correctamente.")
                 st.session_state["show_add_usuario"] = False
                 st.rerun()
+            except ValidationError as e:
+                st.error(e.message)
             except Exception:
-                st.error("No se pudo crear el usuario. Verificá que el email no esté duplicado.")
+                st.error("No se pudo crear el usuario. Intentá nuevamente.")
 
 
 def render_editar(usuario: dict) -> None:
@@ -33,15 +38,18 @@ def render_editar(usuario: dict) -> None:
         submitted = st.form_submit_button("Actualizar")
 
         if submitted:
-            if not nombre.strip() or not email.strip():
-                st.error("Nombre y email son obligatorios.")
+            errores = validate_usuario_form(nombre, email, rol)
+            if errores:
+                show_errors(errores)
                 return
             try:
-                db.update_usuario(usuario["id"], nombre.strip(), email.strip().lower(), rol)
+                db.update_usuario(usuario["id"], nombre, email, rol)
                 st.success("Usuario actualizado.")
                 st.rerun()
+            except ValidationError as e:
+                st.error(e.message)
             except Exception:
-                st.error("Error al actualizar. Verificá que el email no esté duplicado.")
+                st.error("Error al actualizar el usuario.")
 
 
 def render() -> None:
@@ -80,11 +88,17 @@ def render() -> None:
             with col1:
                 if usuario["activo"] == 1:
                     if st.button("Desactivar", key=f"desact_{usuario['id']}"):
-                        db.desactivar_usuario(usuario["id"])
-                        st.success("Usuario desactivado.")
-                        st.rerun()
+                        try:
+                            db.desactivar_usuario(usuario["id"])
+                            st.success("Usuario desactivado.")
+                            st.rerun()
+                        except ValidationError as e:
+                            st.error(e.message)
                 else:
                     if st.button("Reactivar", key=f"react_{usuario['id']}"):
-                        db.activar_usuario(usuario["id"])
-                        st.success("Usuario reactivado.")
-                        st.rerun()
+                        try:
+                            db.activar_usuario(usuario["id"])
+                            st.success("Usuario reactivado.")
+                            st.rerun()
+                        except ValidationError as e:
+                            st.error(e.message)
