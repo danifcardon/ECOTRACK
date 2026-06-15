@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 
 import pandas as pd
 import streamlit as st
@@ -65,6 +65,19 @@ def rows_to_dataframe(rows: list) -> pd.DataFrame:
     if not rows:
         return pd.DataFrame()
     return pd.DataFrame([dict(row) for row in rows])
+
+
+def clean_row(row) -> dict:
+    data = row.to_dict() if hasattr(row, "to_dict") else dict(row)
+    return {k: (None if pd.isna(v) else v) for k, v in data.items()}
+
+
+def clamp_fecha(fecha: date, min_fecha: date, max_fecha: date) -> date:
+    if fecha < min_fecha:
+        return min_fecha
+    if fecha > max_fecha:
+        return max_fecha
+    return fecha
 
 
 from utils.constants import (

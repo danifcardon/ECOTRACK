@@ -3,11 +3,20 @@ from datetime import date
 import streamlit as st
 
 import database as db
-from utils.helpers import ESTADOS_VIAJE, format_date, rows_to_dataframe
+from utils.helpers import ESTADOS_VIAJE, clean_row, clamp_fecha, format_date, rows_to_dataframe
 from utils.errors import ValidationError
 from utils.validators import show_errors, validate_rango_fechas, validate_viaje_form
 
 ESTADOS_NUEVO_VIAJE = ["Planificado", "En curso"]
+
+
+def _parse_fecha(valor) -> date | None:
+    if not valor:
+        return None
+    try:
+        return date.fromisoformat(str(valor))
+    except ValueError:
+        return None
 
 
 def get_vehiculo_options() -> dict[str, int]:
@@ -79,7 +88,7 @@ def render_completar(viaje: dict) -> None:
         submitted = st.form_submit_button("Marcar como completado", type="primary")
 
         if submitted:
-            fecha_viaje = date.fromisoformat(viaje["fecha"]) if viaje.get("fecha") else date.today()
+            fecha_viaje = _parse_fecha(viaje.get("fecha")) or date.today()
             errores = validate_viaje_form(
                 fecha_viaje,
                 viaje["origen"],
@@ -110,19 +119,25 @@ def render_completar(viaje: dict) -> None:
 
 
 def render_editar(viaje: dict) -> None:
-    fecha_default = date.today()
-    if viaje.get("fecha"):
-        try:
-            fecha_default = date.fromisoformat(viaje["fecha"])
-        except ValueError:
-            pass
+    hoy = date.today()
+    fecha_default = _parse_fecha(viaje.get("fecha")) or hoy
 
-    min_fecha = date.today() if viaje["estado"] in ("Planificado", "En curso") else date.today().replace(year=date.today().year - 1)
+    if viaje["estado"] in ("Planificado", "En curso"):
+        min_fecha = hoy
+        max_fecha = None
+        fecha_default = max(fecha_default, min_fecha)
+    else:
+        min_fecha = hoy.replace(year=hoy.year - 1)
+        max_fecha = hoy
+        fecha_default = clamp_fecha(fecha_default, min_fecha, max_fecha)
 
     with st.form(f"form_editar_viaje_{viaje['id']}"):
         col1, col2 = st.columns(2)
         with col1:
-            fecha = st.date_input("Fecha", value=fecha_default, min_value=min_fecha, max_value=date.today())
+            fecha_kwargs = {"value": fecha_default, "min_value": min_fecha}
+            if max_fecha is not None:
+                fecha_kwargs["max_value"] = max_fecha
+            fecha = st.date_input("Fecha", **fecha_kwargs)
             origen = st.text_input("Origen", value=viaje["origen"])
             destino = st.text_input("Destino", value=viaje["destino"])
         with col2:
@@ -131,15 +146,17 @@ def render_editar(viaje: dict) -> None:
                 ESTADOS_VIAJE,
                 index=ESTADOS_VIAJE.index(viaje["estado"]) if viaje["estado"] in ESTADOS_VIAJE else 0,
             )
+            km_actual = viaje.get("km_recorridos")
             km = st.number_input(
                 "Km recorridos",
-                value=float(viaje["km_recorridos"] or 0),
+                value=float(km_actual) if km_actual is not None else 0.0,
                 min_value=0.0,
                 max_value=2000.0,
             )
+            consumo_actual = viaje.get("consumo_kwh")
             consumo = st.number_input(
                 "Consumo kWh",
-                value=float(viaje["consumo_kwh"] or 0),
+                value=float(consumo_actual) if consumo_actual is not None else 0.0,
                 min_value=0.0,
                 max_value=500.0,
             )
@@ -198,6 +215,9 @@ def render() -> None:
         if st.button("➕ Registrar viaje", use_container_width=True):
             st.session_state["show_add_viaje"] = not st.session_state.get("show_add_viaje", False)
 
+    if st.session_state.get("show_add_viaje"):
+        render_form_agregar()
+
     err_rango = validate_rango_fechas(fecha_desde, fecha_hasta)
     if err_rango:
         st.warning(err_rango)
@@ -224,12 +244,12 @@ def render() -> None:
     st.subheader("Detalle de viajes")
 
     for _, row in viajes.iterrows():
-        v = dict(row)
+        v = clean_row(row)
         with st.expander(f"{format_date(v['fecha'])} — {v['origen']} → {v['destino']} ({v['estado']})"):
-            st.markdown(f"**Vehículo:** {v.get('patente', '—')} ({v.get('modelo', '')})")
-            st.markdown(f"**Conductor:** {v.get('conductor_nombre', '—')}")
-            st.markdown(f"**Km recorridos:** {v.get('km_recorridos') or '—'}")
-            st.markdown(f"**Consumo:** {v.get('consumo_kwh') or '—'} kWh")
+            st.markdown(f"**Vehículo:** {v.get('patente') or '—'} ({v.get('modelo') or ''})")
+            st.markdown(f"**Conductor:** {v.get('conductor_nombre') or '—'}")
+            st.markdown(f"**Km recorridos:** {v.get('km_recorridos') if v.get('km_recorridos') is not None else '—'}")
+            st.markdown(f"**Consumo:** {v.get('consumo_kwh') if v.get('consumo_kwh') is not None else '—'} kWh")
             if v.get("notas"):
                 st.markdown(f"**Notas:** {v['notas']}")
 

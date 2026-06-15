@@ -111,7 +111,6 @@ def _insert_sample_data(cursor: sqlite3.Cursor) -> None:
     licencia_ok = (hoy + timedelta(days=180)).strftime("%Y-%m-%d")
     vtv_ok = (hoy + timedelta(days=200)).strftime("%Y-%m-%d")
     seguro_ok = (hoy + timedelta(days=300)).strftime("%Y-%m-%d")
-    mes_actual = hoy.strftime("%Y-%m")
 
     usuarios = [
         ("María González", "maria.gonzalez@verdemov.com", "Administrador", 1, fecha_creacion),
@@ -156,12 +155,12 @@ def _insert_sample_data(cursor: sqlite3.Cursor) -> None:
     )
 
     viajes = [
-        (f"{mes_actual}-05", 2, 2, "Buenos Aires - Palermo", "Buenos Aires - Belgrano", 18.5, "Completado", 4.2, "Entrega express"),
-        (f"{mes_actual}-08", 1, 1, "Buenos Aires - Microcentro", "Buenos Aires - Puerto Madero", 12.0, "Completado", 3.1, None),
-        (f"{mes_actual}-10", 5, 3, "Córdoba - Nueva Córdoba", "Córdoba - Villa Carlos Paz", 35.0, "Completado", 2.8, "Ruta interurbana corta"),
-        (f"{mes_actual}-12", 2, 2, "Rosario - Centro", "Rosario - Fisherton", 22.0, "En curso", None, "En progreso"),
-        (f"{mes_actual}-15", 1, 5, "Buenos Aires - Recoleta", "Buenos Aires - Caballito", 8.5, "Planificado", None, "Programado mañana"),
-        (f"{mes_actual}-03", 4, 1, "Buenos Aires - San Telmo", "Buenos Aires - La Boca", 6.0, "Cancelado", None, "Cliente canceló"),
+        ((hoy - timedelta(days=10)).strftime("%Y-%m-%d"), 2, 2, "Buenos Aires - Palermo", "Buenos Aires - Belgrano", 18.5, "Completado", 4.2, "Entrega express"),
+        ((hoy - timedelta(days=7)).strftime("%Y-%m-%d"), 1, 1, "Buenos Aires - Microcentro", "Buenos Aires - Puerto Madero", 12.0, "Completado", 3.1, None),
+        ((hoy - timedelta(days=5)).strftime("%Y-%m-%d"), 5, 3, "Córdoba - Nueva Córdoba", "Córdoba - Villa Carlos Paz", 35.0, "Completado", 2.8, "Ruta interurbana corta"),
+        (hoy.strftime("%Y-%m-%d"), 2, 2, "Rosario - Centro", "Rosario - Fisherton", 22.0, "En curso", None, "En progreso"),
+        (hoy.strftime("%Y-%m-%d"), 1, 5, "Buenos Aires - Recoleta", "Buenos Aires - Caballito", 8.5, "Planificado", None, "Programado hoy"),
+        ((hoy - timedelta(days=12)).strftime("%Y-%m-%d"), 4, 1, "Buenos Aires - San Telmo", "Buenos Aires - La Boca", 6.0, "Cancelado", None, "Cliente canceló"),
     ]
     cursor.executemany(
         """INSERT INTO viajes
