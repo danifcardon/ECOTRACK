@@ -91,11 +91,77 @@ La app se abrirá en el navegador, normalmente en `http://localhost:8501`.
 ECOTRACK/
 ├── app.py              # Entry point, login y navegación
 ├── database.py         # SQLite, tablas, CRUD y datos de ejemplo
-├── pages/              # Dashboard, usuarios, vehículos, conductores, viajes
+├── views/              # Dashboard, usuarios, vehículos, conductores, viajes
 ├── utils/helpers.py    # Utilidades (fechas, batería, alertas)
 ├── requirements.txt
 └── .streamlit/         # Tema visual VerdeMov
 ```
+
+> **Nota:** Las vistas están en `views/` (no en `pages/`) para evitar que Streamlit Cloud exponga rutas sin pasar por el login.
+
+---
+
+## Despliegue en Streamlit Community Cloud (gratis)
+
+### Lo que ya está preparado en el repo
+
+- `app.py` como punto de entrada
+- `requirements.txt` con dependencias
+- `.python-version` → Python 3.11
+- `.streamlit/config.toml` con tema VerdeMov
+- Login compatible con **Secrets** de Streamlit Cloud
+- Base SQLite que se inicializa sola con datos de ejemplo
+
+### Pasos que debés hacer vos
+
+#### 1. Subir los últimos cambios a GitHub
+
+```bash
+git add .
+git commit -m "Preparar despliegue en Streamlit Cloud"
+git push origin main
+```
+
+#### 2. Crear cuenta en Streamlit Cloud
+
+1. Entrá a [share.streamlit.io](https://share.streamlit.io)
+2. Iniciá sesión con tu cuenta de **GitHub** (la misma del repo `danifcardon/ECOTRACK`)
+
+#### 3. Crear la app
+
+1. Clic en **New app**
+2. Completá:
+   - **Repository:** `danifcardon/ECOTRACK`
+   - **Branch:** `main`
+   - **Main file path:** `app.py`
+3. Clic en **Deploy**
+
+#### 4. (Opcional) Configurar credenciales en Secrets
+
+En la app desplegada → **Settings** → **Secrets**, pegá:
+
+```toml
+[auth]
+username = "admin"
+password = "ecotrack2025"
+display_name = "Administrador"
+```
+
+Si no configurás secrets, funcionan las mismas credenciales por defecto del MVP.
+
+#### 5. Compartir la URL
+
+Streamlit te dará una URL pública tipo:
+
+`https://ecotrack-xxxxx.streamlit.app`
+
+Esa es la que podés entregar a tu profesor.
+
+### Importante sobre SQLite en la nube
+
+- Los datos **pueden reiniciarse** cuando Streamlit redeploya la app.
+- Al iniciar, `init_db()` vuelve a crear la base con **datos de ejemplo** si está vacía.
+- Para un MVP/demo universitario esto suele ser suficiente.
 
 ---
 
