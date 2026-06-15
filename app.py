@@ -293,7 +293,7 @@ def _credenciales_validas(usuario: str, password: str) -> tuple[bool, str]:
         display = st.secrets["auth"].get("display_name", "Administrador")
     except (KeyError, FileNotFoundError, AttributeError):
         user_ok = "admin"
-        pass_ok = "ecotrack2025"
+        pass_ok = "admin"
         display = "Administrador"
 
     if usuario == user_ok and password == pass_ok:

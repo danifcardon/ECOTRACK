@@ -50,7 +50,7 @@ La app se abrirá en el navegador, normalmente en `http://localhost:8501`.
 | Campo      | Valor           |
 |------------|-----------------|
 | Usuario    | `admin`         |
-| Contraseña | `ecotrack2025`  |
+| Contraseña | `admin`         |
 
 ### Usuarios de ejemplo en la base de datos
 
@@ -66,7 +66,7 @@ La app se abrirá en el navegador, normalmente en `http://localhost:8501`.
 
 ## Flujo de prueba recomendado
 
-1. **Login** con `admin` / `ecotrack2025`.
+1. **Login** con `admin` / `admin`.
 2. **Dashboard** — revisar KPIs, gráficos y alertas (batería baja, vencimientos).
 3. **Vehículos** — filtrar por estado/tipo; probar alta, edición y eliminación.
 4. **Conductores** — verificar alertas de licencia por vencer.
@@ -143,7 +143,7 @@ En la app desplegada → **Settings** → **Secrets**, pegá:
 ```toml
 [auth]
 username = "admin"
-password = "ecotrack2025"
+password = "admin"
 display_name = "Administrador"
 ```
 

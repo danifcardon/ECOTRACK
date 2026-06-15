@@ -77,8 +77,29 @@ def init_db() -> None:
     if cursor.fetchone()[0] == 0:
         _insert_sample_data(cursor)
 
+    _ensure_admin_user(cursor)
+
     conn.commit()
     conn.close()
+
+
+def _ensure_admin_user(cursor: sqlite3.Cursor) -> None:
+    """Garantiza que exista el administrador del sistema en cada despliegue."""
+    fecha = datetime.now().strftime("%Y-%m-%d")
+    admin_email = "admin@verdemov.com"
+    cursor.execute("SELECT id FROM usuarios WHERE email = ?", (admin_email,))
+    if cursor.fetchone():
+        cursor.execute(
+            """UPDATE usuarios SET nombre = ?, rol = ?, activo = 1
+               WHERE email = ?""",
+            ("Administrador", "Administrador", admin_email),
+        )
+    else:
+        cursor.execute(
+            """INSERT INTO usuarios (nombre, email, rol, activo, fecha_creacion)
+               VALUES (?, ?, ?, 1, ?)""",
+            ("Administrador", admin_email, "Administrador", fecha),
+        )
 
 
 def _insert_sample_data(cursor: sqlite3.Cursor) -> None:
