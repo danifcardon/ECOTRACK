@@ -41,7 +41,13 @@ def render_form_agregar() -> None:
         with col2:
             estado = st.selectbox("Estado", ESTADOS_VEHICULO)
             nivel_bateria = st.slider("Nivel de batería (%)", 0, 100, 100)
-            km_totales = st.number_input("Km totales", min_value=0, max_value=9_999_999, value=0)
+            km_totales = st.number_input(
+                "Km totales",
+                min_value=0,
+                max_value=9_999_999,
+                value=None,
+                placeholder="Ej. 15000",
+            )
             vtv = st.date_input("Vencimiento VTV", min_value=MIN_VENCIMIENTO, value=MIN_VENCIMIENTO)
             seguro = st.date_input("Vencimiento seguro", min_value=MIN_VENCIMIENTO, value=MIN_VENCIMIENTO)
         notas = st.text_area("Notas", max_chars=500)
@@ -50,7 +56,7 @@ def render_form_agregar() -> None:
         if submitted:
             errores = validate_vehiculo_form(
                 patente, marca, modelo, int(anio), tipo, estado,
-                int(nivel_bateria), int(km_totales), vtv, seguro, notas,
+                int(nivel_bateria), int(km_totales or 0), vtv, seguro, notas,
             )
             if errores:
                 show_errors(errores)
@@ -64,7 +70,7 @@ def render_form_agregar() -> None:
                     "tipo": tipo,
                     "estado": estado,
                     "nivel_bateria": int(nivel_bateria),
-                    "km_totales": int(km_totales),
+                    "km_totales": int(km_totales or 0),
                     "vencimiento_vtv": vtv.isoformat(),
                     "vencimiento_seguro": seguro.isoformat(),
                     "notas": notas.strip() or None,
