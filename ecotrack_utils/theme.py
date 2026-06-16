@@ -21,7 +21,7 @@ def build_brand_css() -> str:
     }}
 
     /* ── Sidebar pegado al borde izquierdo ── */
-    section[data-testid="stSidebar"] {{
+    section[data-testid="stSidebar"][aria-expanded="true"] {{
         background: {COLOR_PRIMARY} !important;
         border-right: 1px solid rgba(255, 255, 255, 0.1) !important;
         box-shadow: none !important;
@@ -34,6 +34,30 @@ def build_brand_css() -> str:
         width: 17.5rem !important;
         height: 100vh !important;
         z-index: 999990 !important;
+    }}
+
+    section[data-testid="stSidebar"][aria-expanded="false"] {{
+        background: {COLOR_PRIMARY} !important;
+        border-right: none !important;
+        box-shadow: none !important;
+        min-width: 0 !important;
+        max-width: 0 !important;
+        width: 0 !important;
+        overflow: hidden !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }}
+
+    section[data-testid="stSidebar"][aria-expanded="false"] > div:first-child {{
+        width: 0 !important;
+        min-width: 0 !important;
+        max-width: 0 !important;
+        margin-left: 0 !important;
+        overflow: hidden !important;
+    }}
+
+    section[data-testid="stSidebar"] {{
+        transition: min-width 200ms ease-out, max-width 200ms ease-out, width 200ms ease-out !important;
     }}
 
     section[data-testid="stSidebar"] > div {{
@@ -263,6 +287,12 @@ def build_brand_css() -> str:
 
     [data-testid="stSidebarCollapsedControl"] {{
         color: #FFFFFF !important;
+        z-index: 999999 !important;
+    }}
+
+    section[data-testid="stSidebar"][aria-expanded="false"] [data-testid="stSidebarCollapsedControl"],
+    section[data-testid="stSidebar"][aria-expanded="false"] [data-testid="stSidebarHeader"] {{
+        visibility: visible !important;
     }}
 
     [data-testid="stSidebar"] [data-testid="stVerticalBlockBorderWrapper"] {{
@@ -275,8 +305,29 @@ def build_brand_css() -> str:
         padding: 0 !important;
     }}
 
+    section[data-testid="stMain"] {{
+        flex: 1 1 auto !important;
+        width: auto !important;
+        max-width: 100% !important;
+        transition: max-width 200ms ease-out, padding 200ms ease-out !important;
+    }}
+
+    section[data-testid="stSidebar"][aria-expanded="false"] ~ section[data-testid="stMain"] {{
+        margin-left: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+    }}
+
     [data-testid="stAppViewContainer"] {{
         padding: 1.5rem 2rem 2.5rem 2rem !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        transition: max-width 200ms ease-out, padding 200ms ease-out !important;
+    }}
+
+    [data-testid="stAppViewBlockContainer"] {{
+        max-width: 100% !important;
+        width: 100% !important;
     }}
 
     [data-testid="stAppViewContainer"] label,
