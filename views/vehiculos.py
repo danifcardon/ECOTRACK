@@ -3,7 +3,7 @@ from datetime import date, timedelta
 import streamlit as st
 
 import database as db
-from utils.helpers import (
+from ecotrack_utils.helpers import (
     ESTADOS_VEHICULO,
     TIPOS_VEHICULO,
     battery_indicator,
@@ -13,8 +13,8 @@ from utils.helpers import (
     safe_int,
     safe_str,
 )
-from utils.errors import ValidationError
-from utils.validators import normalize_patente, show_errors, validate_vehiculo_form
+from ecotrack_utils.errors import ValidationError
+from ecotrack_utils.validators import normalize_patente, show_errors, validate_vehiculo_form
 
 MIN_VENCIMIENTO = date.today() + timedelta(days=1)
 

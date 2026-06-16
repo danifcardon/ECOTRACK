@@ -1,14 +1,14 @@
 import re
 from datetime import date, datetime
 
-from utils.constants import (
+from ecotrack_utils.constants import (
     ESTADOS_CONDUCTOR,
     ESTADOS_VEHICULO,
     ESTADOS_VIAJE,
     ROLES,
     TIPOS_VEHICULO,
 )
-from utils.errors import ValidationError
+from ecotrack_utils.errors import ValidationError
 
 MAX_TEXTO = 200
 MAX_NOTAS = 500

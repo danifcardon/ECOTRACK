@@ -4,7 +4,16 @@ import pandas as pd
 import streamlit as st
 
 from database import get_connection as _get_connection
-from utils.constants import COLOR_PRIMARY, COLOR_SECONDARY, COLOR_TEXT
+from ecotrack_utils.constants import (
+    COLOR_PRIMARY,
+    COLOR_SECONDARY,
+    COLOR_TEXT,
+    ESTADOS_CONDUCTOR,
+    ESTADOS_VEHICULO,
+    ESTADOS_VIAJE,
+    ROLES,
+    TIPOS_VEHICULO,
+)
 
 
 def get_connection():
@@ -93,10 +102,3 @@ def clamp_fecha(fecha: date, min_fecha: date, max_fecha: date) -> date:
     return fecha
 
 
-from utils.constants import (
-    ESTADOS_CONDUCTOR,
-    ESTADOS_VEHICULO,
-    ESTADOS_VIAJE,
-    ROLES,
-    TIPOS_VEHICULO,
-)

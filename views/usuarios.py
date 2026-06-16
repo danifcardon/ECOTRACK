@@ -1,9 +1,9 @@
 import streamlit as st
 
 import database as db
-from utils.helpers import ROLES, format_date, rows_to_dataframe
-from utils.errors import ValidationError
-from utils.validators import show_errors, validate_usuario_form
+from ecotrack_utils.helpers import ROLES, format_date, rows_to_dataframe
+from ecotrack_utils.errors import ValidationError
+from ecotrack_utils.validators import show_errors, validate_usuario_form
 
 
 def render_form_agregar() -> None:

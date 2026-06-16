@@ -92,7 +92,7 @@ ECOTRACK/
 ├── app.py              # Entry point, login y navegación
 ├── database.py         # SQLite, tablas, CRUD y datos de ejemplo
 ├── views/              # Dashboard, usuarios, vehículos, conductores, viajes
-├── utils/helpers.py    # Utilidades (fechas, batería, alertas)
+├── ecotrack_utils/     # Constantes, tema, validadores y helpers
 ├── requirements.txt
 └── .streamlit/         # Tema visual VerdeMov
 ```

@@ -1,8 +1,8 @@
 import streamlit as st
 
 from database import init_db
-from utils.constants import COLOR_TEXT
-from utils.theme import build_brand_css, build_login_css
+from ecotrack_utils.constants import COLOR_TEXT
+from ecotrack_utils.theme import build_brand_css, build_login_css
 from views import conductores, dashboard, usuarios, vehiculos, viajes
 
 # ========================================================
@@ -16,7 +16,7 @@ st.set_page_config(
 )
 
 # ========================================================
-# 2. INYECCIÓN DE CSS (paleta EcoTrack centralizada en utils/theme.py)
+# 2. INYECCIÓN DE CSS (paleta EcoTrack centralizada en ecotrack_utils/theme.py)
 # ========================================================
 BRAND_CSS = build_brand_css()
 LOGIN_CSS = build_login_css()

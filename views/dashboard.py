@@ -3,8 +3,8 @@ import plotly.graph_objects as go
 import streamlit as st
 
 import database as db
-from utils.constants import CHART_COLORS, COLOR_BG
-from utils.helpers import alert_vencimientos, format_date, rows_to_dataframe
+from ecotrack_utils.constants import CHART_COLORS, COLOR_BG
+from ecotrack_utils.helpers import alert_vencimientos, format_date, rows_to_dataframe
 
 
 def render_alertas() -> None:

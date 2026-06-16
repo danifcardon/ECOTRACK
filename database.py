@@ -2,8 +2,8 @@ import sqlite3
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
-from utils.errors import ValidationError
-from utils.validators import normalize_dni, normalize_patente
+from ecotrack_utils.errors import ValidationError
+from ecotrack_utils.validators import normalize_dni, normalize_patente
 
 DB_PATH = Path(__file__).parent / "ecotrack.db"
 

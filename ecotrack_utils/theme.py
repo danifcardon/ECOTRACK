@@ -1,4 +1,4 @@
-from utils.constants import (
+from ecotrack_utils.constants import (
     BORDER_RADIUS,
     BORDER_RADIUS_LG,
     COLOR_ACCENT,

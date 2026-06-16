@@ -3,9 +3,9 @@ from datetime import date
 import streamlit as st
 
 import database as db
-from utils.helpers import ESTADOS_VIAJE, clean_row, clamp_fecha, format_date, rows_to_dataframe
-from utils.errors import ValidationError
-from utils.validators import show_errors, validate_rango_fechas, validate_viaje_form
+from ecotrack_utils.helpers import ESTADOS_VIAJE, clean_row, clamp_fecha, format_date, rows_to_dataframe
+from ecotrack_utils.errors import ValidationError
+from ecotrack_utils.validators import show_errors, validate_rango_fechas, validate_viaje_form
 
 ESTADOS_NUEVO_VIAJE = ["Planificado", "En curso"]
 
