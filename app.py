@@ -120,37 +120,14 @@ def render_sidebar() -> str:
     st.sidebar.markdown("""
         <div class="sidebar-brand">
             <div class="sidebar-brand-icon" aria-hidden="true">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
-                     xmlns="http://www.w3.org/2000/svg">
-                    <path d="M12 2C8.5 2 5.5 4.5 5 8C4.5 11.5 6.5 14.5 9 16V22H15V16C17.5 14.5
-                             19.5 11.5 19 8C18.5 4.5 15.5 2 12 2Z" fill="#A5D6A7"/>
-                    <path d="M9 16H15" stroke="#2E7D32" stroke-width="1.5" stroke-linecap="round"/>
-                </svg>
+                <span class="material-symbols-outlined">eco</span>
             </div>
             <div class="sidebar-brand-text">
                 <span class="sidebar-brand-name">EcoTrack</span>
-                <span class="sidebar-brand-org">VerdeMov S.A.</span>
+                <span class="sidebar-brand-subtitle">Panel administrador</span>
             </div>
         </div>
-    """, unsafe_allow_html=True)
-
-    usuario = st.session_state.get("usuario", "Usuario")
-    st.sidebar.markdown(f"""
-        <div class="sidebar-user">
-            <div class="sidebar-user-avatar" aria-hidden="true">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
-                     xmlns="http://www.w3.org/2000/svg">
-                    <circle cx="12" cy="8" r="4" stroke="#A5D6A7" stroke-width="1.5"/>
-                    <path d="M5 20C5 16.134 8.134 13 12 13C15.866 13 19 16.134 19 20"
-                          stroke="#A5D6A7" stroke-width="1.5" stroke-linecap="round"/>
-                </svg>
-            </div>
-            <div class="sidebar-user-info">
-                <span class="sidebar-user-label">Sesión activa</span>
-                <span class="sidebar-user-name">{usuario}</span>
-            </div>
-        </div>
-        <p class="nav-section-title">Menú principal</p>
+        <div class="sidebar-divider"></div>
     """, unsafe_allow_html=True)
 
     for page_id, label in MENU_ITEMS:
@@ -165,13 +142,6 @@ def render_sidebar() -> str:
             st.rerun()
 
     st.sidebar.markdown('<div class="sidebar-spacer"></div>', unsafe_allow_html=True)
-
-    st.sidebar.markdown("""
-        <div class="sidebar-footer">
-            <span class="sidebar-footer-dot"></span>
-            Movilidad 100% eléctrica
-        </div>
-    """, unsafe_allow_html=True)
 
     if st.sidebar.button("Cerrar sesión", key="btn_logout", use_container_width=True):
         st.session_state.clear()

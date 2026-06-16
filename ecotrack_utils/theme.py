@@ -23,8 +23,8 @@ def build_brand_css() -> str:
     /* ── Sidebar pegado al borde izquierdo ── */
     section[data-testid="stSidebar"] {{
         background: {COLOR_PRIMARY} !important;
-        border-right: none !important;
-        box-shadow: 2px 0 24px rgba(27, 27, 27, 0.12) !important;
+        border-right: 1px solid rgba(255, 255, 255, 0.1) !important;
+        box-shadow: none !important;
         top: 0 !important;
         left: 0 !important;
         margin: 0 !important;
@@ -61,7 +61,7 @@ def build_brand_css() -> str:
 
     [data-testid="stSidebarUserContent"] > [data-testid="stVerticalBlock"] {{
         gap: 0 !important;
-        padding: 0 0.75rem 1.25rem 0.75rem !important;
+        padding: 0 1rem 1.25rem 1rem !important;
         flex: 1 !important;
         display: flex !important;
         flex-direction: column !important;
@@ -81,225 +81,173 @@ def build_brand_css() -> str:
         color: #FFFFFF !important;
     }}
 
+    .material-symbols-outlined {{
+        font-family: 'Material Symbols Outlined' !important;
+        font-weight: normal !important;
+        font-style: normal !important;
+        font-size: 1.35rem !important;
+        line-height: 1 !important;
+        letter-spacing: normal !important;
+        text-transform: none !important;
+        display: inline-block !important;
+        white-space: nowrap !important;
+        word-wrap: normal !important;
+        direction: ltr !important;
+        -webkit-font-smoothing: antialiased !important;
+    }}
+
     /* Brand header */
     .sidebar-brand {{
         display: flex;
         align-items: center;
-        gap: 0.85rem;
-        padding: 1.5rem 1rem 1.25rem 1rem;
-        margin: 0 -0.75rem 0 -0.75rem;
-        background: rgba(0, 0, 0, 0.12);
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        gap: 0.75rem;
+        padding: 1.35rem 0.25rem 1.1rem 0.25rem;
     }}
 
     .sidebar-brand-icon {{
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 2.75rem;
-        height: 2.75rem;
-        background: rgba(255, 255, 255, 0.12);
+        width: 2.5rem;
+        height: 2.5rem;
+        background: {COLOR_SECONDARY};
         border-radius: 10px;
         flex-shrink: 0;
+        color: #FFFFFF;
+    }}
+
+    .sidebar-brand-icon .material-symbols-outlined {{
+        font-size: 1.4rem !important;
+        color: #FFFFFF !important;
     }}
 
     .sidebar-brand-text {{
-        display: flex;
-        flex-direction: column;
-        gap: 0.15rem;
-        min-width: 0;
-    }}
-
-    .sidebar-brand-name {{
-        font-size: 1.2rem;
-        font-weight: 700;
-        color: #FFFFFF !important;
-        letter-spacing: -0.3px;
-        line-height: 1.2;
-    }}
-
-    .sidebar-brand-org {{
-        font-size: 0.7rem;
-        font-weight: 600;
-        color: {COLOR_ACCENT} !important;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-        line-height: 1.2;
-    }}
-
-    /* User session */
-    .sidebar-user {{
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        padding: 1rem 0.25rem 1.25rem 0.25rem;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        margin-bottom: 0.5rem;
-    }}
-
-    .sidebar-user-avatar {{
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 2.25rem;
-        height: 2.25rem;
-        background: rgba(255, 255, 255, 0.1);
-        border-radius: 50%;
-        flex-shrink: 0;
-    }}
-
-    .sidebar-user-info {{
         display: flex;
         flex-direction: column;
         gap: 0.1rem;
         min-width: 0;
     }}
 
-    .sidebar-user-label {{
-        font-size: 0.68rem;
-        font-weight: 500;
-        color: {COLOR_ACCENT} !important;
-        text-transform: uppercase;
-        letter-spacing: 0.06em;
-    }}
-
-    .sidebar-user-name {{
-        font-size: 0.9rem;
-        font-weight: 600;
+    .sidebar-brand-name {{
+        font-size: 1.15rem;
+        font-weight: 700;
         color: #FFFFFF !important;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        letter-spacing: -0.2px;
+        line-height: 1.25;
     }}
 
-    .nav-section-title {{
-        font-size: 0.68rem !important;
-        font-weight: 600 !important;
-        color: rgba(255, 255, 255, 0.5) !important;
-        text-transform: uppercase;
-        letter-spacing: 0.1em;
-        padding: 0.75rem 0.5rem 0.5rem 0.5rem;
-        margin: 0 !important;
+    .sidebar-brand-subtitle {{
+        font-size: 0.8rem;
+        font-weight: 400;
+        color: rgba(255, 255, 255, 0.62) !important;
+        line-height: 1.25;
     }}
 
-    /* Nav buttons (hijos 3–7 del bloque vertical = módulos) */
-    [data-testid="stSidebarUserContent"] [data-testid="stVerticalBlock"] > div:nth-child(n+3):nth-child(-n+7) .stButton {{
-        margin: 0.1rem 0 !important;
+    .sidebar-divider {{
+        height: 1px;
+        background: rgba(255, 255, 255, 0.12);
+        margin: 0 0.25rem 0.85rem 0.25rem;
     }}
 
-    [data-testid="stSidebarUserContent"] [data-testid="stVerticalBlock"] > div:nth-child(n+3):nth-child(-n+7) .stButton > button {{
+    /* Nav buttons (hijos 2–6 del bloque vertical = módulos) */
+    [data-testid="stSidebarUserContent"] [data-testid="stVerticalBlock"] > div:nth-child(n+2):nth-child(-n+6) .stButton {{
+        margin: 0.15rem 0 !important;
+    }}
+
+    [data-testid="stSidebarUserContent"] [data-testid="stVerticalBlock"] > div:nth-child(n+2):nth-child(-n+6) .stButton > button {{
         display: flex !important;
         align-items: center !important;
         justify-content: flex-start !important;
         width: 100% !important;
-        padding: 0.7rem 0.85rem 0.7rem 2.65rem !important;
+        padding: 0.72rem 0.9rem 0.72rem 2.6rem !important;
         border: none !important;
-        border-radius: 8px !important;
+        border-radius: 10px !important;
         background: transparent !important;
-        color: rgba(255, 255, 255, 0.82) !important;
-        font-size: 0.9rem !important;
+        color: rgba(255, 255, 255, 0.78) !important;
+        font-size: 0.92rem !important;
         font-weight: 500 !important;
         font-family: 'Inter', sans-serif !important;
         box-shadow: none !important;
-        transition: background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease !important;
+        transition: background 0.15s ease, color 0.15s ease !important;
         position: relative !important;
-        min-height: 2.65rem !important;
+        min-height: 2.75rem !important;
         margin: 0 !important;
     }}
 
-    [data-testid="stSidebarUserContent"] [data-testid="stVerticalBlock"] > div:nth-child(n+3):nth-child(-n+7) .stButton > button::before {{
+    [data-testid="stSidebarUserContent"] [data-testid="stVerticalBlock"] > div:nth-child(n+2):nth-child(-n+6) .stButton > button::before {{
         font-family: 'Material Symbols Outlined' !important;
-        font-size: 1.2rem !important;
+        font-size: 1.25rem !important;
         font-weight: normal !important;
         position: absolute !important;
-        left: 0.75rem !important;
+        left: 0.8rem !important;
         top: 50% !important;
         transform: translateY(-50%) !important;
         line-height: 1 !important;
-        opacity: 0.88;
+        opacity: 0.85;
     }}
 
-    [data-testid="stSidebarUserContent"] [data-testid="stVerticalBlock"] > div:nth-child(3) .stButton > button::before {{
+    [data-testid="stSidebarUserContent"] [data-testid="stVerticalBlock"] > div:nth-child(2) .stButton > button::before {{
         content: 'space_dashboard' !important;
     }}
 
-    [data-testid="stSidebarUserContent"] [data-testid="stVerticalBlock"] > div:nth-child(4) .stButton > button::before {{
+    [data-testid="stSidebarUserContent"] [data-testid="stVerticalBlock"] > div:nth-child(3) .stButton > button::before {{
         content: 'group' !important;
     }}
 
-    [data-testid="stSidebarUserContent"] [data-testid="stVerticalBlock"] > div:nth-child(5) .stButton > button::before {{
+    [data-testid="stSidebarUserContent"] [data-testid="stVerticalBlock"] > div:nth-child(4) .stButton > button::before {{
         content: 'directions_car' !important;
     }}
 
-    [data-testid="stSidebarUserContent"] [data-testid="stVerticalBlock"] > div:nth-child(6) .stButton > button::before {{
+    [data-testid="stSidebarUserContent"] [data-testid="stVerticalBlock"] > div:nth-child(5) .stButton > button::before {{
         content: 'badge' !important;
     }}
 
-    [data-testid="stSidebarUserContent"] [data-testid="stVerticalBlock"] > div:nth-child(7) .stButton > button::before {{
+    [data-testid="stSidebarUserContent"] [data-testid="stVerticalBlock"] > div:nth-child(6) .stButton > button::before {{
         content: 'route' !important;
     }}
 
-    [data-testid="stSidebarUserContent"] [data-testid="stVerticalBlock"] > div:nth-child(n+3):nth-child(-n+7) .stButton > button:hover {{
-        background: rgba(255, 255, 255, 0.1) !important;
+    [data-testid="stSidebarUserContent"] [data-testid="stVerticalBlock"] > div:nth-child(n+2):nth-child(-n+6) .stButton > button:hover {{
+        background: rgba(255, 255, 255, 0.08) !important;
         color: #FFFFFF !important;
         transform: none !important;
         border: none !important;
     }}
 
-    [data-testid="stSidebarUserContent"] [data-testid="stVerticalBlock"] > div:nth-child(n+3):nth-child(-n+7) .stButton > button[data-testid="baseButton-primary"] {{
+    [data-testid="stSidebarUserContent"] [data-testid="stVerticalBlock"] > div:nth-child(n+2):nth-child(-n+6) .stButton > button[data-testid="baseButton-primary"] {{
         background: rgba(255, 255, 255, 0.14) !important;
         color: #FFFFFF !important;
         font-weight: 600 !important;
-        box-shadow: inset 3px 0 0 {COLOR_ACCENT} !important;
+        box-shadow: none !important;
         border: none !important;
     }}
 
-    [data-testid="stSidebarUserContent"] [data-testid="stVerticalBlock"] > div:nth-child(n+3):nth-child(-n+7) .stButton > button[data-testid="baseButton-primary"]::before {{
+    [data-testid="stSidebarUserContent"] [data-testid="stVerticalBlock"] > div:nth-child(n+2):nth-child(-n+6) .stButton > button[data-testid="baseButton-primary"]::before {{
         opacity: 1;
+        color: {COLOR_ACCENT} !important;
     }}
 
     /* Logout (último botón del sidebar) */
     [data-testid="stSidebarUserContent"] [data-testid="stVerticalBlock"] > div:last-child .stButton > button {{
         background: transparent !important;
-        color: rgba(255, 255, 255, 0.75) !important;
-        border: 1px solid rgba(255, 255, 255, 0.22) !important;
+        color: rgba(255, 255, 255, 0.6) !important;
+        border: none !important;
         border-radius: 8px !important;
-        padding: 0.6rem 1rem !important;
-        font-size: 0.85rem !important;
+        padding: 0.55rem 0.9rem !important;
+        font-size: 0.82rem !important;
         font-weight: 500 !important;
         margin-top: 0.25rem !important;
-        transition: all 0.18s ease !important;
+        transition: color 0.15s ease !important;
         box-shadow: none !important;
     }}
 
     [data-testid="stSidebarUserContent"] [data-testid="stVerticalBlock"] > div:last-child .stButton > button:hover {{
-        background: rgba(255, 255, 255, 0.1) !important;
-        border-color: {COLOR_ACCENT} !important;
+        background: transparent !important;
         color: #FFFFFF !important;
     }}
 
     .sidebar-spacer {{
         flex: 1;
-        min-height: 1.5rem;
-    }}
-
-    .sidebar-footer {{
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        padding: 0.75rem 0.5rem 0.25rem 0.5rem;
-        font-size: 0.75rem;
-        font-weight: 500;
-        color: rgba(255, 255, 255, 0.45) !important;
-        letter-spacing: 0.02em;
-    }}
-
-    .sidebar-footer-dot {{
-        width: 6px;
-        height: 6px;
-        border-radius: 50%;
-        background: {COLOR_SECONDARY};
-        flex-shrink: 0;
+        min-height: 1rem;
     }}
 
     /* Eliminar franja superior y huecos del layout Streamlit */
