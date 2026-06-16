@@ -4,6 +4,7 @@ import pandas as pd
 import streamlit as st
 
 from database import get_connection as _get_connection
+from utils.constants import COLOR_PRIMARY, COLOR_SECONDARY, COLOR_TEXT
 
 
 def get_connection():
@@ -31,10 +32,10 @@ def days_until(date_str: str | None) -> int | None:
 
 def battery_color(nivel: int) -> str:
     if nivel < 20:
-        return "#E53935"
+        return COLOR_TEXT
     if nivel < 50:
-        return "#FDD835"
-    return "#2E7D32"
+        return COLOR_SECONDARY
+    return COLOR_PRIMARY
 
 
 def battery_indicator(nivel: int) -> str:
@@ -64,7 +65,19 @@ def alert_vencimientos(df: pd.DataFrame, col_fecha: str, label: str, dias: int =
 def rows_to_dataframe(rows: list) -> pd.DataFrame:
     if not rows:
         return pd.DataFrame()
-    return pd.DataFrame([dict(row) for row in rows])
+    return pd.DataFrame([clean_row(dict(row)) for row in rows])
+
+
+def safe_int(value, default: int = 0) -> int:
+    if value is None or (isinstance(value, float) and pd.isna(value)):
+        return default
+    return int(value)
+
+
+def safe_str(value, default: str = "") -> str:
+    if value is None or (isinstance(value, float) and pd.isna(value)):
+        return default
+    return str(value)
 
 
 def clean_row(row) -> dict:

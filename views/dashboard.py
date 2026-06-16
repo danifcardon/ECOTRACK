@@ -3,9 +3,8 @@ import plotly.graph_objects as go
 import streamlit as st
 
 import database as db
+from utils.constants import CHART_COLORS, COLOR_BG
 from utils.helpers import alert_vencimientos, format_date, rows_to_dataframe
-
-COLORES_VERDE = ["#2E7D32", "#66BB6A", "#A5D6A7", "#1B5E20", "#43A047", "#81C784"]
 
 
 def render_alertas() -> None:
@@ -63,10 +62,10 @@ def render() -> None:
                 x="estado",
                 y="cantidad",
                 color="estado",
-                color_discrete_sequence=COLORES_VERDE,
+                color_discrete_sequence=CHART_COLORS,
                 labels={"estado": "Estado", "cantidad": "Cantidad"},
             )
-            fig.update_layout(showlegend=False, plot_bgcolor="#F1F8E9", paper_bgcolor="#F1F8E9")
+            fig.update_layout(showlegend=False, plot_bgcolor=COLOR_BG, paper_bgcolor=COLOR_BG)
             st.plotly_chart(fig, use_container_width=True)
 
     vehiculos_estado = rows_to_dataframe(db.get_vehiculos_por_estado())
@@ -80,12 +79,12 @@ def render() -> None:
                     go.Pie(
                         labels=vehiculos_estado["estado"],
                         values=vehiculos_estado["cantidad"],
-                        marker_colors=COLORES_VERDE[: len(vehiculos_estado)],
+                        marker_colors=CHART_COLORS[: len(vehiculos_estado)],
                         hole=0.4,
                     )
                 ]
             )
-            fig.update_layout(plot_bgcolor="#F1F8E9", paper_bgcolor="#F1F8E9")
+            fig.update_layout(plot_bgcolor=COLOR_BG, paper_bgcolor=COLOR_BG)
             st.plotly_chart(fig, use_container_width=True)
 
     st.markdown("---")

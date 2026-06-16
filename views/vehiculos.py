@@ -7,8 +7,11 @@ from utils.helpers import (
     ESTADOS_VEHICULO,
     TIPOS_VEHICULO,
     battery_indicator,
+    clean_row,
     format_date,
     rows_to_dataframe,
+    safe_int,
+    safe_str,
 )
 from utils.errors import ValidationError
 from utils.validators import normalize_patente, show_errors, validate_vehiculo_form
@@ -76,48 +79,52 @@ def render_form_agregar() -> None:
 
 
 def render_editar(vehiculo: dict) -> None:
-    vtv_default = max(_parse_fecha(vehiculo.get("vencimiento_vtv")), MIN_VENCIMIENTO)
-    seguro_default = max(_parse_fecha(vehiculo.get("vencimiento_seguro")), MIN_VENCIMIENTO)
+    vehiculo = clean_row(vehiculo)
+    vtv_default = _parse_fecha(vehiculo.get("vencimiento_vtv"))
+    seguro_default = _parse_fecha(vehiculo.get("vencimiento_seguro"))
 
     with st.form(f"form_editar_vehiculo_{vehiculo['id']}"):
         col1, col2 = st.columns(2)
         with col1:
-            patente = st.text_input("Patente", value=vehiculo["patente"])
-            marca = st.text_input("Marca", value=vehiculo["marca"])
-            modelo = st.text_input("Modelo", value=vehiculo["modelo"])
+            patente = st.text_input("Patente", value=safe_str(vehiculo.get("patente")))
+            marca = st.text_input("Marca", value=safe_str(vehiculo.get("marca")))
+            modelo = st.text_input("Modelo", value=safe_str(vehiculo.get("modelo")))
             anio = st.number_input(
-                "Año", value=vehiculo["anio"] or date.today().year,
+                "Año", value=safe_int(vehiculo.get("anio"), date.today().year),
                 min_value=2000, max_value=date.today().year + 1,
             )
             tipo = st.selectbox(
                 "Tipo", TIPOS_VEHICULO,
-                index=TIPOS_VEHICULO.index(vehiculo["tipo"]) if vehiculo["tipo"] in TIPOS_VEHICULO else 0,
+                index=TIPOS_VEHICULO.index(vehiculo["tipo"]) if vehiculo.get("tipo") in TIPOS_VEHICULO else 0,
             )
         with col2:
             estado = st.selectbox(
                 "Estado", ESTADOS_VEHICULO,
-                index=ESTADOS_VEHICULO.index(vehiculo["estado"]) if vehiculo["estado"] in ESTADOS_VEHICULO else 0,
+                index=ESTADOS_VEHICULO.index(vehiculo["estado"]) if vehiculo.get("estado") in ESTADOS_VEHICULO else 0,
             )
-            nivel_bateria = st.slider("Batería (%)", 0, 100, int(vehiculo["nivel_bateria"] or 0))
+            nivel_bateria = st.slider("Batería (%)", 0, 100, safe_int(vehiculo.get("nivel_bateria"), 0))
             km_totales = st.number_input(
-                "Km totales", value=int(vehiculo["km_totales"] or 0),
+                "Km totales", value=safe_int(vehiculo.get("km_totales"), 0),
                 min_value=0, max_value=9_999_999,
             )
-            vtv = st.date_input("Vencimiento VTV", value=vtv_default, min_value=MIN_VENCIMIENTO)
-            seguro = st.date_input("Vencimiento seguro", value=seguro_default, min_value=MIN_VENCIMIENTO)
-            notas = st.text_area("Notas", value=vehiculo["notas"] or "", max_chars=500)
+            vtv = st.date_input("Vencimiento VTV", value=vtv_default)
+            seguro = st.date_input("Vencimiento seguro", value=seguro_default)
+            notas = st.text_area("Notas", value=safe_str(vehiculo.get("notas")), max_chars=500)
 
         submitted = st.form_submit_button("Actualizar")
         if submitted:
             errores = validate_vehiculo_form(
                 patente, marca, modelo, int(anio), tipo, estado,
                 int(nivel_bateria), int(km_totales), vtv, seguro, notas,
+                es_edicion=True,
+                vtv_original=vehiculo.get("vencimiento_vtv"),
+                seguro_original=vehiculo.get("vencimiento_seguro"),
             )
             if errores:
                 show_errors(errores)
                 return
             try:
-                db.update_vehiculo(vehiculo["id"], {
+                db.update_vehiculo(int(vehiculo["id"]), {
                     "patente": normalize_patente(patente),
                     "marca": marca,
                     "modelo": modelo,
@@ -134,8 +141,8 @@ def render_editar(vehiculo: dict) -> None:
                 st.rerun()
             except ValidationError as e:
                 st.error(e.message)
-            except Exception:
-                st.error("Error al actualizar el vehículo.")
+            except Exception as e:
+                st.error(f"Error al actualizar el vehículo: {e}")
 
 
 def render() -> None:
@@ -174,7 +181,7 @@ def render() -> None:
     st.subheader("Detalle de vehículos")
 
     for _, row in vehiculos.iterrows():
-        v = dict(row)
+        v = clean_row(row)
         with st.expander(f"{v['patente']} — {v['marca']} {v['modelo']}"):
             col_a, col_b = st.columns(2)
             with col_a:
@@ -182,17 +189,17 @@ def render() -> None:
                 st.markdown(f"**Estado:** {v['estado']}")
                 st.markdown(f"**Año:** {v['anio']}")
                 st.markdown(
-                    f"**Batería:** {battery_indicator(int(v['nivel_bateria'] or 0))}",
+                    f"**Batería:** {battery_indicator(safe_int(v.get('nivel_bateria'), 0))}",
                     unsafe_allow_html=True,
                 )
             with col_b:
-                st.markdown(f"**Km totales:** {v['km_totales']:,}")
+                st.markdown(f"**Km totales:** {safe_int(v.get('km_totales'), 0):,}")
                 st.markdown(f"**VTV:** {format_date(v['vencimiento_vtv'])}")
                 st.markdown(f"**Seguro:** {format_date(v['vencimiento_seguro'])}")
                 if v.get("notas"):
                     st.markdown(f"**Notas:** {v['notas']}")
 
-            st.progress(int(v["nivel_bateria"] or 0) / 100)
+            st.progress(safe_int(v.get("nivel_bateria"), 0) / 100)
 
             render_editar(v)
 

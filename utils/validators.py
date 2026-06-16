@@ -122,8 +122,29 @@ def validate_fecha_vencimiento(fecha: date, campo: str) -> str | None:
     return None
 
 
+def validate_fecha_vencimiento_edicion(
+    fecha: date,
+    fecha_original: str | None,
+    campo: str,
+) -> str | None:
+    if fecha_original:
+        try:
+            if fecha == date.fromisoformat(str(fecha_original)):
+                return None
+        except ValueError:
+            pass
+    return validate_fecha_vencimiento(fecha, campo)
+
+
 def validate_notas(notas: str | None) -> str | None:
-    if notas and len(notas.strip()) > MAX_NOTAS:
+    if notas is None:
+        return None
+    if isinstance(notas, float):
+        return None
+    texto = str(notas).strip()
+    if not texto:
+        return None
+    if len(texto) > MAX_NOTAS:
         return f"Las notas no pueden superar {MAX_NOTAS} caracteres."
     return None
 
@@ -251,7 +272,20 @@ def validate_vehiculo_form(
     vencimiento_vtv: date,
     vencimiento_seguro: date,
     notas: str | None,
+    es_edicion: bool = False,
+    vtv_original: str | None = None,
+    seguro_original: str | None = None,
 ) -> list[str]:
+    validar_vtv = (
+        validate_fecha_vencimiento_edicion(vencimiento_vtv, vtv_original, "El vencimiento de VTV")
+        if es_edicion
+        else validate_fecha_vencimiento(vencimiento_vtv, "El vencimiento de VTV")
+    )
+    validar_seguro = (
+        validate_fecha_vencimiento_edicion(vencimiento_seguro, seguro_original, "El vencimiento del seguro")
+        if es_edicion
+        else validate_fecha_vencimiento(vencimiento_seguro, "El vencimiento del seguro")
+    )
     return collect_errors(
         validate_patente(patente),
         validate_marca_modelo(marca, "La marca"),
@@ -261,8 +295,8 @@ def validate_vehiculo_form(
         validate_estado_vehiculo(estado),
         validate_nivel_bateria(int(nivel_bateria)),
         validate_km_totales(int(km_totales)),
-        validate_fecha_vencimiento(vencimiento_vtv, "El vencimiento de VTV"),
-        validate_fecha_vencimiento(vencimiento_seguro, "El vencimiento del seguro"),
+        validar_vtv,
+        validar_seguro,
         validate_notas(notas),
     )
 
